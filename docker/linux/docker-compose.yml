@@ -7,6 +7,10 @@ services:
     restart: always
     env_file:
       - ../../.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - ${DOCKER_GID:-999}
     healthcheck:
       test: ["CMD", "pgrep", "-f", "run.sh"]
       interval: 30s
@@ -18,8 +22,8 @@ services:
       replicas: 2
       resources:
         limits:
+          cpus: '2'
+          memory: 4096M
+        reservations:
           cpus: '0.5'
           memory: 512M
-        reservations:
-          cpus: '0.4'
-          memory: 256M
