@@ -50,7 +50,8 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin \
 # Java 17 (OpenJDK)
 # ─────────────────────────────────────────────
 RUN apt-get install -y -qq openjdk-17-jdk-headless
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-$(dpkg --print-architecture)
+ARG JAVA_ARCH=arm64
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-${JAVA_ARCH}
 
 # ─────────────────────────────────────────────
 # Android SDK + .NET MAUI Android workload
