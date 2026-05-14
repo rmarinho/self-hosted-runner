@@ -1,2 +1,4 @@
 .idea/
 AGENTS.md
+.DS_Store
+.env
