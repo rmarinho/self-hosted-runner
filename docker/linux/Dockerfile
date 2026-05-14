@@ -13,7 +13,7 @@ RUN useradd -m docker
 RUN apt install -y --no-install-recommends \
     curl build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip jq \
     libgmp-dev libncurses-dev libnuma-dev zlib1g-dev pkg-config \
-    ca-certificates gnupg
+    ca-certificates gnupg unzip
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
     && chmod a+r /etc/apt/keyrings/docker.gpg \
@@ -37,7 +37,41 @@ RUN apt-get install -y -qq sudo && echo "docker ALL=(ALL) NOPASSWD: ALL" >> /etc
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
-# Install GHCup, GHC and Cabal as the docker user
+# ─────────────────────────────────────────────
+# .NET 10 SDK
+# ─────────────────────────────────────────────
+ENV DOTNET_ROOT=/usr/share/dotnet
+ENV PATH="${DOTNET_ROOT}:${DOTNET_ROOT}/tools:${PATH}"
+RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin \
+        --channel 10.0 --install-dir "$DOTNET_ROOT" \
+    && dotnet --info
+
+# ─────────────────────────────────────────────
+# Java 17 (OpenJDK)
+# ─────────────────────────────────────────────
+RUN apt-get install -y -qq openjdk-17-jdk-headless
+ARG JAVA_ARCH=arm64
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-${JAVA_ARCH}
+
+# ─────────────────────────────────────────────
+# Android SDK + .NET MAUI Android workload
+# ─────────────────────────────────────────────
+ENV ANDROID_HOME=/usr/local/android-sdk
+ENV ANDROID_SDK_ROOT=${ANDROID_HOME}
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdline-tools.zip \
+    && unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools \
+    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && rm /tmp/cmdline-tools.zip \
+    && yes | sdkmanager --licenses > /dev/null 2>&1 \
+    && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.1" \
+    && chmod -R a+rw ${ANDROID_HOME}
+RUN dotnet workload install maui-android
+
+# ─────────────────────────────────────────────
+# Haskell (GHCup, GHC, Cabal)
+# ─────────────────────────────────────────────
 USER docker
 ENV PATH="/home/docker/.ghcup/bin:/home/docker/.cabal/bin:${PATH}"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | \
